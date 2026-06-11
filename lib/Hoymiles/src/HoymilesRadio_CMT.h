@@ -88,6 +88,7 @@ private:
     TimeoutHelper _txTimeout;
 
     uint32_t _inverterTargetFrequency = HOYMILES_CMT_WORK_FREQ;
+    int8_t _paLevel = 0;
 
     bool cmtSwitchDtuFreq(const uint32_t to_frequency);
 
