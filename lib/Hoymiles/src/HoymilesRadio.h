@@ -18,6 +18,11 @@ static const char* TAG = "hoymiles";
 #define DEBUG_PRINT(fmt, args...) /* Don't do anything in release builds */
 #endif
 
+// Note: the ESP_LOGx calls below use the literal "hoymiles" tag instead of a
+// TAG macro because this header is included from many translation units, each
+// defining its own TAG; a file-level TAG here would collide with them.
+#define HOY_LOG_TAG "hoymiles"
+
 class HoymilesRadio {
 public:
     serial_u DtuSerial() const;
@@ -31,10 +36,13 @@ public:
     void removeCommands(InverterAbstract* inv);
     uint8_t countSimilarCommands(std::shared_ptr<CommandAbstract> cmd);
 
+    // Logs a compact description of every command currently waiting in the
+    // radio's command queue (most recently used for debugging).
+    void dumpQueue() const { _commandQueue.dumpQueue(); }
+
     void enqueCommand(std::shared_ptr<CommandAbstract> cmd)
     {
         DEBUG_PRINT("Queue size before: %ld", _commandQueue.size());
-        DEBUG_PRINT("Handling command %s with type %d", cmd.get()->getCommandName().c_str(), static_cast<uint8_t>(cmd.get()->getQueueInsertType()));
         switch (cmd.get()->getQueueInsertType()) {
         case QueueInsertType::RemoveOldest:
             _commandQueue.removeDuplicatedEntries(cmd);
@@ -45,6 +53,7 @@ public:
             // (The new one will not be pushed at the end of the queue)
             if (_commandQueue.countSimilarCommands(cmd) > 0) {
                 DEBUG_PRINT("    ... existing entry will be replaced");
+                ESP_LOGI(HOY_LOG_TAG, "Enqueue %s: replaced existing entry", cmd.get()->getCommandDescription().c_str());
                 _commandQueue.replaceEntries(cmd);
                 return;
             }
@@ -53,7 +62,7 @@ public:
             // Checks if the queue already contains a command like the new one
             // and drops the new one. The new one will not be inserted.
             if (_commandQueue.countSimilarCommands(cmd) > 0) {
-                DEBUG_PRINT("    ... new entry will be dropped");
+                ESP_LOGI(HOY_LOG_TAG, "Enqueue %s: dropped, similar command already queued", cmd.get()->getCommandDescription().c_str());
                 return;
             }
             break;
@@ -65,6 +74,7 @@ public:
         // Push the command into the queue if we reach this position of the code
         DEBUG_PRINT("    ... new entry will be appended");
         _commandQueue.push(cmd);
+        ESP_LOGI(HOY_LOG_TAG, "Enqueue %s (queue: %ld)", cmd.get()->getCommandDescription().c_str(), _commandQueue.size());
 
         DEBUG_PRINT("Queue size after: %ld", _commandQueue.size());
     }

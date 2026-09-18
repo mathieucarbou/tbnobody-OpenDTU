@@ -5,6 +5,10 @@
 #include "CommandQueue.h"
 #include "../inverters/InverterAbstract.h"
 #include <algorithm>
+#include <esp_log.h>
+
+#undef TAG
+static const char* TAG = "hoymiles";
 
 void CommandQueue::removeAllEntriesForInverter(InverterAbstract* inv)
 {
@@ -48,4 +52,19 @@ uint8_t CommandQueue::countSimilarCommands(std::shared_ptr<CommandAbstract> cmd)
         [&](const auto& v) {
             return cmd->areSameParameter(v.get());
         });
+}
+
+void CommandQueue::dumpQueue() const
+{
+    std::lock_guard<std::mutex> lock(_mutex);
+
+    if (_queue.empty()) {
+        return;
+    }
+
+    size_t pos = 0;
+    for (const auto& entry : _queue) {
+        ESP_LOGI(TAG, "%zu: %s", pos, entry->getCommandDescription().c_str());
+        pos++;
+    }
 }
