@@ -67,6 +67,7 @@ public:
     MqttHandleHassClass();
     void init(Scheduler& scheduler);
     void publishConfig();
+    void publishZeroExportConfig();
     void forceUpdate();
 
 private:
