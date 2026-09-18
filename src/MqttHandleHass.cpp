@@ -9,6 +9,7 @@
 #include "Utils.h"
 #include "__compiled_constants.h"
 #include "defaults.h"
+#include <functional>
 
 #define MAX_CONFIG_PUBLISH_RATIO 60000
 
@@ -81,6 +82,8 @@ void MqttHandleHassClass::publishConfig()
     publishDtuSensor("DC Power", "dc/power", "W", "", DEVICE_CLS_PWR, STATE_CLS_MEASUREMENT, CATEGORY_NONE);
 
     publishDtuBinarySensor("Status", config.Mqtt.Lwt.Topic, config.Mqtt.Lwt.Value_Online, config.Mqtt.Lwt.Value_Offline, DEVICE_CLS_CONNECTIVITY, STATE_CLS_NONE, CATEGORY_DIAGNOSTIC);
+
+    publishZeroExportConfig();
 
     // Loop all inverters
     for (uint8_t i = 0; i < Hoymiles.getNumInverters(); i++) {
@@ -431,4 +434,75 @@ void MqttHandleHassClass::publishInverterSensor(
     JsonDocument root;
     createInverterInfo(root, inv);
     publishSensor(root, "dtu_" + serial, serial, name, serial + "/" + state_topic, unit_of_measure, icon, device_class, state_class, category);
+}
+
+void MqttHandleHassClass::publishZeroExportConfig()
+{
+    const String dtuId = getDtuUniqueId();
+    const String prefix = MqttSettings.getPrefix();
+
+    auto publishEntity = [&](const String& component, const String& id, const String& name,
+                             const String& cmdTopic, const String& statTopic,
+                             const std::function<void(JsonDocument&)>& customize) {
+        JsonDocument root;
+        createDtuInfo(root);
+
+        root["name"] = name;
+        root["uniq_id"] = dtuId + "_zeroexport_" + id;
+
+        if (cmdTopic.length() > 0) {
+            root["cmd_t"] = prefix + cmdTopic;
+        }
+        if (statTopic.length() > 0) {
+            root["stat_t"] = prefix + statTopic;
+        }
+
+        customize(root);
+
+        if (!Utils::checkJsonAlloc(root, __FUNCTION__, __LINE__)) {
+            return;
+        }
+        String buffer;
+        serializeJson(root, buffer);
+        publish(component + "/" + dtuId + "/zeroexport_" + id + "/config", buffer);
+    };
+
+    publishEntity("switch", "enabled", "Zero-Export",
+        "dtu/zeroexport/cmd/enabled", "dtu/zeroexport/status/enabled",
+        [](JsonDocument& root) {
+            root["ent_cat"] = "config";
+            root["pl_on"] = "1";
+            root["pl_off"] = "0";
+            root["ic"] = "mdi:transmission-tower-off";
+        });
+
+    publishEntity("number", "setpoint", "Zero-Export Setpoint",
+        "dtu/zeroexport/cmd/setpoint", "dtu/zeroexport/status/setpoint",
+        [](JsonDocument& root) {
+            root["ent_cat"] = "config";
+            root["min"] = -10000;
+            root["max"] = 10000;
+            root["step"] = 1;
+            root["mode"] = "box";
+            root["unit_of_meas"] = "W";
+            root["ic"] = "mdi:target";
+        });
+
+    publishEntity("sensor", "grid_power", "Zero-Export Grid Power",
+        "", "dtu/zeroexport/status/grid_power",
+        [](JsonDocument& root) {
+            root["unit_of_meas"] = "W";
+            root["dev_cla"] = "power";
+            root["stat_cla"] = "measurement";
+            root["ic"] = "mdi:transmission-tower";
+        });
+
+    publishEntity("sensor", "production_limit", "Zero-Export Production Limit",
+        "", "dtu/zeroexport/status/production_limit",
+        [](JsonDocument& root) {
+            root["unit_of_meas"] = "W";
+            root["dev_cla"] = "power";
+            root["stat_cla"] = "measurement";
+            root["ic"] = "mdi:car-speed-limiter";
+        });
 }
