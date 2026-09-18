@@ -8,7 +8,7 @@
 #include <mutex>
 
 #define CONFIG_FILENAME "/config.json"
-#define CONFIG_VERSION 0x00011e00 // 0.1.30 // make sure to clean all after change
+#define CONFIG_VERSION 0x00011f00 // 0.1.31 // make sure to clean all after change
 
 #define WIFI_MAX_SSID_STRLEN 32
 #define WIFI_MAX_PASSWORD_STRLEN 64
@@ -38,6 +38,9 @@
 
 #define LOG_MODULE_COUNT 16
 #define LOG_MODULE_NAME_STRLEN 32
+
+#define ZEROEXPORT_MAX_ADDR_STRLEN 15
+#define ZEROEXPORT_MAX_MQTT_TOPIC_STRLEN 127
 
 struct CHANNEL_CONFIG_T {
     uint16_t MaxChannelPower;
@@ -178,6 +181,26 @@ struct CONFIG_T {
             int8_t Level;
         } Modules[LOG_MODULE_COUNT];
     } Logging;
+
+    // Zero-Export regulation configuration.
+    struct {
+        bool Enabled; // Enable automatic inverter power-limit regulation.
+        int32_t SetPoint; // Desired grid power in watts.
+        uint32_t MinimalProduction; // Total minimum inverter output; 0 selects automatic mode.
+        uint32_t UpdateInterval; // Minimum seconds between regulation runs.
+        uint8_t Source; // Grid power source identifier.
+
+        // Shelly Local Network Messaging multicast endpoint.
+        struct {
+            char GroupAddress[ZEROEXPORT_MAX_ADDR_STRLEN + 1]; // IPv4 multicast group.
+            uint16_t GroupPort; // UDP multicast port.
+        } ShellyLnm;
+
+        // MQTT grid power source.
+        struct {
+            char GridPowerTopic[ZEROEXPORT_MAX_MQTT_TOPIC_STRLEN + 1]; // Topic publishing the raw grid power value.
+        } Mqtt;
+    } ZeroExport;
 };
 
 class ConfigurationClass {
