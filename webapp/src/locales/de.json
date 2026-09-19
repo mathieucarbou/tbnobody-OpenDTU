@@ -5,6 +5,7 @@
         "NetworkSettings": "Netzwerk",
         "NTPSettings": "NTP",
         "MQTTSettings": "MQTT",
+        "ZeroExportSettings": "Zero-Export",
         "InverterSettings": "Wechselrichter",
         "SecuritySettings": "Sicherheit",
         "LoggingSettings": "Protokollierung",
@@ -121,7 +122,10 @@
         "10002": "Authentifizierung erfolgreich!",
         "11001": "@:apiresponse.2001",
         "11002": "@:apiresponse.5004",
-        "12001": "Profilname muss zwischen 1 und {max} Zeichen lang sein!"
+        "12001": "Profilname muss zwischen 1 und {max} Zeichen lang sein!",
+        "13001": "Shelly-LNM-Adresse muss zwischen 1 und {max} Zeichen lang sein!",
+        "13002": "Intervall muss zwischen {min} und {max} liegen!",
+        "13003": "Port muss zwischen {min} und {max} liegen!"
     },
     "home": {
         "LiveData": "Live-Daten",
@@ -526,6 +530,32 @@
         "HassRetain": "Retain Flag aktivieren",
         "HassExpire": "Ablauffunktion aktivieren",
         "HassIndividual": "Einzelne Panels"
+    },
+    "zeroexportadmin": {
+        "ZeroExportSettings": "Zero-Export Einstellungen",
+        "ZeroExportConfiguration": "Zero-Export Konfiguration",
+        "EnableZeroExport": "Zero-Export aktivieren",
+        "SetPoint": "Netz-Sollwert",
+        "SetPointHint": "Ziel-Netzleistung in Watt. 0 bedeutet kein Austausch mit dem Netz (kein Bezug, keine Einspeisung). Positive Werte erlauben Bezug, negative Werte erlauben Einspeisung.",
+        "MinimalProduction": "Minimale Produktionsleistung",
+        "MinimalProductionHint": "Minimale Gesamtleistung aller Wechselrichter in Watt. Verhindert, dass die Wechselrichter so weit heruntergeregelt werden, dass sie abschalten. 0 bedeutet automatisch 100 W pro konfiguriertem Wechselrichter.",
+        "UpdateInterval": "Regelintervall",
+        "UpdateIntervalHint": "Mindestabstand zwischen zwei Regelungen (mindestens 5 Sekunden). HMS-Wechselrichter benötigen möglicherweise 1-2 Sekunden, um ein neues Limit anzuwenden; Shelly LNM muss danach Zeit zum Messen und Weitergeben des Ergebnisses haben.",
+        "Seconds": "Sekunden",
+        "Watts": "W",
+        "GridSource": "Netzquelle",
+        "Source": "Netz-Quelle",
+        "SourceHint": "Quelle, die Netzleistung meldet.",
+        "SourceShellyLnm": "Shelly LNM (Local Network Messaging)",
+        "ShellyLnmConfiguration": "Shelly LNM Konfiguration",
+        "ShellyLnmAddr": "Multicast-Gruppenadresse",
+        "ShellyLnmAddrHint": "UDP-Multicast-Gruppe, an die die Shelly-LNM-Nachrichten gesendet werden (Standard: 239.255.55.55)",
+        "ShellyLnmPort": "Multicast-Gruppenport",
+        "ZeroExportStatus": "Zero-Export Status",
+        "GridPower": "Netzleistung",
+        "ProductionLimit": "Produktionslimit",
+        "ProductionLimitHint": "Die Summe der zuletzt von der Regelung angeforderten absoluten Leistungslimits der steuerbaren Wechselrichter. Dies ist das Regelungsziel, keine Messung der tatsächlichen Produktion.",
+        "RefreshStatus": "Aktualisieren"
     },
     "inverteradmin": {
         "InverterSettings": "Wechselrichter Einstellungen",
