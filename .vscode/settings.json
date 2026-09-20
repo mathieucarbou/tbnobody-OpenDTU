@@ -1,3 +1,4 @@
 {
-    "C_Cpp.clang_format_style": "WebKit"
+    "C_Cpp.clang_format_style": "WebKit",
+    "cmake.sourceDirectory": "/Users/mat/Data/Workspace/forks/OpenDTU/lib/Frozen/frozen"
 }
