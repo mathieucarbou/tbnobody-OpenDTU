@@ -167,6 +167,18 @@ bool ConfigurationClass::write()
         module["name"] = config.Logging.Modules[i].Name;
     }
 
+    JsonObject zeroexport = doc["zeroexport"].to<JsonObject>();
+    zeroexport["enabled"] = config.ZeroExport.Enabled;
+    zeroexport["setpoint"] = config.ZeroExport.SetPoint;
+    zeroexport["minimal_production"] = config.ZeroExport.MinimalProduction;
+    zeroexport["update_interval"] = config.ZeroExport.UpdateInterval;
+    zeroexport["source"] = config.ZeroExport.Source;
+    zeroexport["shelly_lnm_addr"] = config.ZeroExport.ShellyLnm.GroupAddress;
+    zeroexport["shelly_lnm_port"] = config.ZeroExport.ShellyLnm.GroupPort;
+    zeroexport["shelly_lnm_failsafe_timeout"] = config.ZeroExport.ShellyLnm.FailsafeTimeout;
+    zeroexport["mqtt_grid_power_topic"] = config.ZeroExport.Mqtt.GridPowerTopic;
+    zeroexport["mqtt_failsafe_timeout"] = config.ZeroExport.Mqtt.FailsafeTimeout;
+
     if (!Utils::checkJsonAlloc(doc, __FUNCTION__, __LINE__)) {
         return false;
     }
@@ -356,6 +368,30 @@ bool ConfigurationClass::read()
         config.Logging.Modules[i].Level = module["level"] | ESP_LOG_VERBOSE;
     }
 
+    JsonObject zeroexport = doc["zeroexport"];
+    config.ZeroExport.Enabled = zeroexport["enabled"] | ZEROEXPORT_ENABLED;
+    config.ZeroExport.SetPoint = zeroexport["setpoint"] | ZEROEXPORT_SETPOINT;
+    config.ZeroExport.MinimalProduction = zeroexport["minimal_production"] | ZEROEXPORT_MINIMAL_PRODUCTION;
+    if (config.ZeroExport.MinimalProduction < ZEROEXPORT_MINIMAL_PRODUCTION_MIN) {
+        config.ZeroExport.MinimalProduction = ZEROEXPORT_MINIMAL_PRODUCTION_MIN;
+    }
+    config.ZeroExport.UpdateInterval = zeroexport["update_interval"] | ZEROEXPORT_UPDATE_INTERVAL;
+    if (config.ZeroExport.UpdateInterval < ZEROEXPORT_UPDATE_INTERVAL_MIN) {
+        config.ZeroExport.UpdateInterval = ZEROEXPORT_UPDATE_INTERVAL_MIN;
+    }
+    config.ZeroExport.Source = zeroexport["source"] | ZEROEXPORT_SOURCE_SHELLY_LNM;
+    strlcpy(config.ZeroExport.ShellyLnm.GroupAddress, zeroexport["shelly_lnm_addr"] | ZEROEXPORT_SHELLY_LNM_ADDR, sizeof(config.ZeroExport.ShellyLnm.GroupAddress));
+    config.ZeroExport.ShellyLnm.GroupPort = zeroexport["shelly_lnm_port"] | ZEROEXPORT_SHELLY_LNM_PORT;
+    config.ZeroExport.ShellyLnm.FailsafeTimeout = zeroexport["shelly_lnm_failsafe_timeout"] | ZEROEXPORT_SHELLY_LNM_FAILSAFE_TIMEOUT;
+    if (config.ZeroExport.ShellyLnm.FailsafeTimeout == 0) {
+        config.ZeroExport.ShellyLnm.FailsafeTimeout = ZEROEXPORT_SHELLY_LNM_FAILSAFE_TIMEOUT;
+    }
+    strlcpy(config.ZeroExport.Mqtt.GridPowerTopic, zeroexport["mqtt_grid_power_topic"] | ZEROEXPORT_MQTT_GRID_POWER_TOPIC, sizeof(config.ZeroExport.Mqtt.GridPowerTopic));
+    config.ZeroExport.Mqtt.FailsafeTimeout = zeroexport["mqtt_failsafe_timeout"] | ZEROEXPORT_MQTT_FAILSAFE_TIMEOUT;
+    if (config.ZeroExport.Mqtt.FailsafeTimeout == 0) {
+        config.ZeroExport.Mqtt.FailsafeTimeout = ZEROEXPORT_MQTT_FAILSAFE_TIMEOUT;
+    }
+
     f.close();
 
     // Check for default DTU serial
@@ -457,6 +493,21 @@ void ConfigurationClass::migrate()
         config.Logging.Default = ESP_LOG_VERBOSE;
         strlcpy(config.Logging.Modules[0].Name, "CORE", sizeof(config.Logging.Modules[0].Name));
         config.Logging.Modules[0].Level = ESP_LOG_ERROR;
+    }
+
+    if (config.Cfg.Version < 0x00011f00) {
+        config.ZeroExport.Enabled = ZEROEXPORT_ENABLED;
+        config.ZeroExport.SetPoint = ZEROEXPORT_SETPOINT;
+        config.ZeroExport.MinimalProduction = ZEROEXPORT_MINIMAL_PRODUCTION;
+        config.ZeroExport.UpdateInterval = ZEROEXPORT_UPDATE_INTERVAL;
+        config.ZeroExport.Source = ZEROEXPORT_SOURCE_SHELLY_LNM;
+        // ShellyLnm
+        config.ZeroExport.ShellyLnm.FailsafeTimeout = ZEROEXPORT_SHELLY_LNM_FAILSAFE_TIMEOUT;
+        strlcpy(config.ZeroExport.ShellyLnm.GroupAddress, ZEROEXPORT_SHELLY_LNM_ADDR, sizeof(config.ZeroExport.ShellyLnm.GroupAddress));
+        config.ZeroExport.ShellyLnm.GroupPort = ZEROEXPORT_SHELLY_LNM_PORT;
+        // Mqtt
+        config.ZeroExport.Mqtt.FailsafeTimeout = ZEROEXPORT_MQTT_FAILSAFE_TIMEOUT;
+        strlcpy(config.ZeroExport.Mqtt.GridPowerTopic, ZEROEXPORT_MQTT_GRID_POWER_TOPIC, sizeof(config.ZeroExport.Mqtt.GridPowerTopic));
     }
 
     f.close();
