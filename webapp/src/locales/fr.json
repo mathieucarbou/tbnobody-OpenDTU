@@ -260,6 +260,7 @@
         "Name": "Nom",
         "StackFree": "Stack libre",
         "Priority": "Priorité",
+        "Core": "Cœur",
         "Task_idle0": "Inactif (cœur CPU 0)",
         "Task_idle1": "Inactif (cœur CPU 1)",
         "Task_wifi": "Wi-Fi",
