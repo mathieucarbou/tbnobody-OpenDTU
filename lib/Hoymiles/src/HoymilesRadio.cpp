@@ -44,9 +44,15 @@ bool HoymilesRadio::checkFragmentCrc(const fragment_t& fragment) const
 
 void HoymilesRadio::sendRetransmitPacket(const uint8_t fragment_id)
 {
-    CommandAbstract* cmd = _commandQueue.front().get();
+    auto front = _commandQueue.tryFront();
+    if (!front.has_value()) {
+        // The command was removed from the queue while its transaction was
+        // in flight (e.g. its inverter got deleted). Abort the transaction.
+        _busyFlag = false;
+        return;
+    }
 
-    CommandAbstract* requestCmd = cmd->getRequestFrameCommand(fragment_id);
+    CommandAbstract* requestCmd = front.value().get()->getRequestFrameCommand(fragment_id);
 
     if (requestCmd != nullptr) {
         sendEsbPacket(*requestCmd);
@@ -55,7 +61,15 @@ void HoymilesRadio::sendRetransmitPacket(const uint8_t fragment_id)
 
 void HoymilesRadio::sendLastPacketAgain()
 {
-    CommandAbstract* cmd = _commandQueue.front().get();
+    auto front = _commandQueue.tryFront();
+    if (!front.has_value()) {
+        // The command was removed from the queue while its transaction was
+        // in flight (e.g. its inverter got deleted). Abort the transaction.
+        _busyFlag = false;
+        return;
+    }
+    CommandAbstract* cmd = front.value().get();
+    // Refresh time-dependent payload (avoids stale-time Timesync alarm) before resending.
     cmd->prepareForSend();
     sendEsbPacket(*cmd);
 }
@@ -71,10 +85,13 @@ void HoymilesRadio::handleReceivedPackage()
     // The timeout below remains as fallback for incomplete responses.
     bool earlyExit = false;
     if (_busyFlag && !_rxTimeout.occured() && isRxBufferEmpty()) {
-        std::shared_ptr<InverterAbstract> inv = Hoymiles.getInverterBySerial(_commandQueue.front().get()->getTargetAddress());
-        if (nullptr != inv && inv->isTransactionComplete()) {
-            earlyExit = true;
-            ESP_LOGI(TAG, "RX Early Exit");
+        auto front = _commandQueue.tryFront();
+        if (front.has_value()) {
+            std::shared_ptr<InverterAbstract> inv = Hoymiles.getInverterBySerial(front.value().get()->getTargetAddress());
+            if (nullptr != inv && inv->isTransactionComplete()) {
+                earlyExit = true;
+                ESP_LOGI(TAG, "RX Early Exit");
+            }
         }
     }
 
@@ -82,10 +99,18 @@ void HoymilesRadio::handleReceivedPackage()
         if (!earlyExit) {
             ESP_LOGI(TAG, "RX Period End");
         }
-        std::shared_ptr<InverterAbstract> inv = Hoymiles.getInverterBySerial(_commandQueue.front().get()->getTargetAddress());
+        auto front = _commandQueue.tryFront();
+        if (!front.has_value()) {
+            // The command was removed from the queue while its transaction
+            // was in flight (e.g. its inverter got deleted). Abort the
+            // transaction instead of dereferencing an empty queue.
+            _busyFlag = false;
+            return;
+        }
+        std::shared_ptr<InverterAbstract> inv = Hoymiles.getInverterBySerial(front.value().get()->getTargetAddress());
 
         if (nullptr != inv) {
-            CommandAbstract* cmd = _commandQueue.front().get();
+            CommandAbstract* cmd = front.value().get();
             uint8_t verifyResult = inv->verifyAllFragments(*cmd);
             if (verifyResult == FRAGMENT_ALL_MISSING_RESEND) {
                 ESP_LOGW(TAG, "Nothing received, resend whole request");
@@ -150,7 +175,11 @@ void HoymilesRadio::handleReceivedPackage()
     } else if (!_busyFlag) {
         // Currently in idle mode --> send packet if one is in the queue
         if (!isQueueEmpty()) {
-            CommandAbstract* cmd = _commandQueue.front().get();
+            auto front = _commandQueue.tryFront();
+            if (!front.has_value()) {
+                return;
+            }
+            CommandAbstract* cmd = front.value().get();
 
             auto inv = Hoymiles.getInverterBySerial(cmd->getTargetAddress());
             if (nullptr != inv) {

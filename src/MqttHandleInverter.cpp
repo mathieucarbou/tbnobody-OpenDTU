@@ -40,6 +40,9 @@ void MqttHandleInverterClass::loop()
     // Loop all inverters
     for (uint8_t i = 0; i < Hoymiles.getNumInverters(); i++) {
         auto inv = Hoymiles.getInverterByPos(i);
+        if (inv == nullptr) {
+            continue;
+        }
 
         const String subtopic = inv->serialString();
 
